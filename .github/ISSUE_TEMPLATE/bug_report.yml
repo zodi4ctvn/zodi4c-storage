@@ -1,0 +1,113 @@
+name: Bug report
+description: Report a reproducible problem with zodi4c-storage
+title: "[Bug]: "
+labels: ["bug", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a bug. Please search existing issues first.
+        Do not include passwords, database dumps, or personal player data.
+
+        Hata bildirdiğiniz için teşekkürler. Lütfen önce mevcut issue'ları arayın.
+        Şifre, veritabanı dökümü veya oyuncuya ait kişisel veri eklemeyin.
+        Formu Türkçe veya İngilizce doldurabilirsiniz.
+
+  - type: input
+    id: version
+    attributes:
+      label: Resource version
+      description: From fxmanifest.lua or CHANGELOG.md
+      placeholder: "1.0.0"
+    validations:
+      required: true
+
+  - type: input
+    id: artifacts
+    attributes:
+      label: FiveM artifact version
+      placeholder: "e.g. 11111"
+    validations:
+      required: true
+
+  - type: input
+    id: dependencies
+    attributes:
+      label: Dependency versions
+      description: qb-core (qbx_core on Qbox), ox_inventory, oxmysql
+      placeholder: "qb-core 1.x or qbx_core 1.x, ox_inventory 2.40.x, oxmysql 2.7.x"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: framework
+    attributes:
+      label: Framework
+      options:
+        - QBCore (qb-core)
+        - Qbox (qbx_core)
+        - Other / fork
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: A clear description of the bug.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Create a storage with ...
+        2. Add a member ...
+        3. See error
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Console output
+      description: Server and client output. Remove sensitive data.
+      render: shell
+
+  - type: dropdown
+    id: locale
+    attributes:
+      label: Locale
+      options:
+        - tr
+        - en
+        - Both
+        - Other
+
+  - type: textarea
+    id: config
+    attributes:
+      label: Relevant config
+      description: Only the options you changed.
+      render: lua
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist
+      options:
+        - label: I searched existing issues and did not find a duplicate.
+          required: true
+        - label: I removed passwords and personal data from logs and config.
+          required: true
+        - label: This is not a security vulnerability (those go through SECURITY.md).
+          required: true

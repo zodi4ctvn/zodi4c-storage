@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>zodi4c-storage</title>
+    <link rel="icon" type="image/svg+xml" href="assets/logo.svg">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <!-- Floating Interaction UI -->
+    <div id="interaction-ui" class="interaction-container hidden">
+        <div class="interaction-box">
+            <span class="key-cap">E</span>
+            <span class="interaction-text">Depo İşlemleri</span>
+        </div>
+    </div>
+
+    <!-- Main Menu -->
+    <div id="main-menu" class="menu-overlay hidden">
+        <div class="menu-container">
+            <header class="menu-header">
+                <div class="header-left">
+                    <div class="header-icon">
+                        <i data-lucide="package"></i>
+                    </div>
+                    <div class="header-text">
+                        <h1 data-i18n="menu_title">Ortak Depo</h1>
+                        <p data-i18n="menu_subtitle">Paylaşımlı ortak depo sistemi</p>
+                    </div>
+                </div>
+                <div class="header-actions">
+                    <div class="search-wrapper">
+                        <i data-lucide="search"></i>
+                        <input type="text" id="storage-search" data-i18n-placeholder="search_placeholder" placeholder="Depo ara...">
+                    </div>
+                    <button id="filter-fav" class="action-btn" data-i18n-title="filter_favorites" title="Favorileri Göster">
+                        <i data-lucide="star"></i>
+                    </button>
+                    <button id="open-create" class="primary-btn">
+                        <i data-lucide="plus"></i>
+                        <span data-i18n="new_storage">Yeni Depo</span>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Filter Status Bar -->
+            <div id="filter-bar" class="filter-status-bar hidden">
+                <span data-i18n="only_favorites">Sadece favoriler gösteriliyor</span>
+                <button id="clear-filter" class="text-link" data-i18n="clear_filter">Filtreyi Temizle</button>
+            </div>
+
+            <main id="storage-list" class="storage-list">
+                <!-- Storages injected here -->
+            </main>
+
+            <footer class="pagination-footer">
+                <button id="prev-page" class="page-btn"><i data-lucide="chevron-left"></i></button>
+                <div id="page-indicator" class="page-numbers">Sayfa 1 / 1</div>
+                <button id="next-page" class="page-btn"><i data-lucide="chevron-right"></i></button>
+            </footer>
+        </div>
+    </div>
+
+    <!-- Create Storage Modal -->
+    <div id="create-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 data-i18n="create_title">Yeni Depo Oluştur</h2>
+                <button class="close-modal"><i data-lucide="x"></i></button>
+            </div>
+            <div class="modal-body">
+                <div class="preview-section">
+                    <div id="image-preview" class="image-preview">
+                        <i data-lucide="image" id="preview-placeholder"></i>
+                    </div>
+                </div>
+                <div class="form-grid">
+                    <div class="input-group">
+                        <label data-i18n="image_url">Resim URL</label>
+                        <input type="text" id="storage-image" placeholder="https://i.imgur.com/...">
+                    </div>
+                    <div class="input-group">
+                        <label data-i18n="storage_name">Depo Adı</label>
+                        <input type="text" id="storage-name" data-i18n-placeholder="storage_name_placeholder" placeholder="Örn: Ev Deposu">
+                    </div>
+                    <div class="input-group">
+                        <label><span data-i18n="slots">Slot Sayısı</span> <span class="input-hint" id="max-slots-hint">Maks: -</span></label>
+                        <input type="number" id="storage-slots" data-i18n-placeholder="slots_placeholder" placeholder="Örn: 50">
+                    </div>
+                    <div class="input-group">
+                        <label><span data-i18n="weight_kg">Ağırlık (kg)</span> <span class="input-hint" id="max-weight-hint">Maks: -</span></label>
+                        <input type="number" id="storage-weight" data-i18n-placeholder="weight_placeholder" placeholder="Örn: 100">
+                    </div>
+                    <div class="input-group full-width">
+                        <label><span data-i18n="password_optional">Şifre (Opsiyonel)</span> <span class="input-hint min-password-hint">En az 4 karakter</span></label>
+                        <div class="password-input-wrapper">
+                            <input type="password" id="storage-password" class="password-length-input" placeholder="••••••" maxlength="50">
+                            <button type="button" class="password-toggle"
+                                onclick="togglePasswordVisibility('storage-password')">
+                                <i data-lucide="eye"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="input-group full-width">
+                        <label data-i18n="payment_method">Ödeme Yöntemi</label>
+                        <div class="payment-options">
+                            <label class="payment-radio">
+                                <input type="radio" name="payment" value="bank" checked>
+                                <div class="payment-card">
+                                    <i data-lucide="landmark"></i>
+                                    <span data-i18n="bank">Banka</span>
+                                    <span class="price" id="price-bank">10000$</span>
+                                </div>
+                            </label>
+                            <label class="payment-radio">
+                                <input type="radio" name="payment" value="cash">
+                                <div class="payment-card">
+                                    <i data-lucide="wallet"></i>
+                                    <span data-i18n="cash">Nakit</span>
+                                    <span class="price" id="price-cash">10000$</span>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="confirm-create" class="confirm-btn" data-i18n="buy_storage">Depoyu Satın Al</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Password Modal -->
+    <div id="password-modal" class="modal-overlay hidden">
+        <div class="modal-content small">
+            <div class="modal-header">
+                <h2 data-i18n="password_required_title">Şifre Gerekli</h2>
+                <button class="close-modal"><i data-lucide="x"></i></button>
+            </div>
+            <div class="modal-body">
+                <p style="margin-bottom: 20px; color: var(--text-dim); font-size: 14px;" data-i18n="password_required_desc">Bu depoya erişmek için şifreyi giriniz.</p>
+                <div class="input-group">
+                    <label data-i18n="storage_password">Depo Şifresi</label>
+                    <div class="password-input-wrapper">
+                        <input type="password" id="access-password" placeholder="••••••">
+                        <button type="button" class="password-toggle" onclick="togglePasswordVisibility('access-password')">
+                            <i data-lucide="eye"></i>
+                        </button>
+                    </div>
+                </div>
+                <button id="confirm-password" class="confirm-btn" style="margin-top: 20px;" data-i18n="open_storage">Depoyu Aç</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Management Modal -->
+    <div id="manage-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 data-i18n="manage_title">Depo Yönetimi</h2>
+                <button class="close-modal"><i data-lucide="x"></i></button>
+            </div>
+            <div class="modal-body">
+                <div class="management-tabs">
+                    <div class="members-section">
+                        <div class="management-actions">
+                            <div class="action-card" onclick="openSubModal('members-modal')">
+                                <div class="action-icon"><i data-lucide="users"></i></div>
+                                <div class="action-info">
+                                    <h3 data-i18n="members_title">Katılımcı Listesi</h3>
+                                    <p data-i18n="members_desc">Depoya erişimi olan kişileri yönetin</p>
+                                </div>
+                                <i data-lucide="chevron-right"></i>
+                            </div>
+
+                            <div class="action-card" onclick="openSubModal('edit-storage-modal')">
+                                <div class="action-icon"><i data-lucide="edit-3"></i></div>
+                                <div class="action-info">
+                                    <h3 data-i18n="edit_title">Depoyu Düzenle</h3>
+                                    <p data-i18n="edit_desc">İsim ve resmi güncelleyin</p>
+                                </div>
+                                <i data-lucide="chevron-right"></i>
+                            </div>
+
+                            <div class="action-card" onclick="openSubModal('capacity-modal')">
+                                <div class="action-icon"><i data-lucide="maximize-2"></i></div>
+                                <div class="action-info">
+                                    <h3 data-i18n="capacity_title">Kapasite Güncelle</h3>
+                                    <p data-i18n="capacity_desc">Slot ve ağırlık değerlerini değiştirin</p>
+                                </div>
+                                <i data-lucide="chevron-right"></i>
+                            </div>
+
+                            <div class="action-card" onclick="openSubModal('change-password-modal')">
+                                <div class="action-icon"><i data-lucide="lock"></i></div>
+                                <div class="action-info">
+                                    <h3 data-i18n="change_password_title">Şifreyi Değiştir</h3>
+                                    <p data-i18n="change_password_desc">Güvenlik ayarlarını güncelleyin</p>
+                                </div>
+                                <i data-lucide="chevron-right"></i>
+                            </div>
+
+                            <div class="action-card" onclick="openLogs()">
+                                <div class="action-icon"><i data-lucide="scroll"></i></div>
+                                <div class="action-info">
+                                    <h3 data-i18n="logs_title">Detaylı Loglar</h3>
+                                    <p data-i18n="logs_desc">Giriş-çıkış ve eşya hareketlerini görün</p>
+                                </div>
+                                <i data-lucide="chevron-right"></i>
+                            </div>
+                        </div>
+
+                        <button id="delete-storage-btn" class="danger-btn full-width" style="margin-top: 10px; display: flex; align-items: center; justify-content: center; gap: 10px;">
+                            <i data-lucide="trash-2" style="width: 18px; height: 18px;"></i>
+                            <span data-i18n="delete_storage">Depoyu Sil</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer flex-footer">
+                <button class="confirm-btn close-modal" data-i18n="close">Kapat</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Members Modal -->
+    <div id="members-modal" class="modal-overlay hidden">
+        <div class="modal-content small">
+            <div class="modal-header">
+                <h2 data-i18n="members_title">Katılımcı Listesi</h2>
+                <button class="close-modal"><i data-lucide="x"></i></button>
+            </div>
+            <div class="modal-body">
+                <div id="members-list" class="members-list">
+                    <!-- Members injected here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Storage Modal -->
+    <div id="edit-storage-modal" class="modal-overlay hidden">
+        <div class="modal-content small">
+            <div class="modal-header">
+                <h2 data-i18n="edit_title">Depoyu Düzenle</h2>
+                <button class="close-modal"><i data-lucide="x"></i></button>
+            </div>
+            <div class="modal-body">
+                <div class="input-group">
+                    <label data-i18n="storage_name">Depo Adı</label>
+                    <input type="text" id="edit-storage-name" data-i18n-placeholder="new_name_placeholder" placeholder="Yeni İsim">
+                </div>
+                <div class="input-group">
+                    <label data-i18n="image_url">Resim URL</label>
+                    <input type="text" id="edit-storage-image" data-i18n-placeholder="new_image_placeholder" placeholder="Yeni Resim URL">
+                </div>
+                <button id="save-storage-edit" class="primary-btn full-width" style="margin-top: 20px;" data-i18n="save_changes">Değişiklikleri Kaydet</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Capacity Modal -->
+    <div id="capacity-modal" class="modal-overlay hidden">
+        <div class="modal-content small">
+            <div class="modal-header">
+                <h2 data-i18n="capacity_title">Kapasite Güncelle</h2>
+                <button class="close-modal"><i data-lucide="x"></i></button>
+            </div>
+            <div class="modal-body">
+                <div class="input-group">
+                    <label><span data-i18n="slots">Slot Sayısı</span> <span class="input-hint" id="capacity-slots-hint">Maks: -</span></label>
+                    <input type="number" id="update-slots" data-i18n-placeholder="slots_placeholder" placeholder="Örn: 50">
+                </div>
+                <div class="input-group">
+                    <label><span data-i18n="weight_kg">Ağırlık (kg)</span> <span class="input-hint" id="capacity-weight-hint">Maks: -</span></label>
+                    <input type="number" id="update-weight" data-i18n-placeholder="weight_placeholder" placeholder="Örn: 100">
+                </div>
+                <button id="save-capacity-update" class="primary-btn full-width" style="margin-top: 20px;" data-i18n="update">Güncelle</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Change Password Modal -->
+    <div id="change-password-modal" class="modal-overlay hidden">
+        <div class="modal-content small">
+            <div class="modal-header">
+                <h2 data-i18n="change_password_title">Şifreyi Değiştir</h2>
+                <button class="close-modal"><i data-lucide="x"></i></button>
+            </div>
+            <div class="modal-body">
+                <div class="input-group">
+                    <label data-i18n="old_password_optional">Eski Şifre (varsa)</label>
+                    <div class="password-input-wrapper">
+                        <input type="password" id="old-password" placeholder="••••••">
+                        <button type="button" class="password-toggle" onclick="togglePasswordVisibility('old-password')">
+                            <i data-lucide="eye"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="input-group">
+                    <label><span data-i18n="new_password">Yeni Şifre</span> <span class="input-hint min-password-hint">En az 4 karakter</span></label>
+                    <div class="password-input-wrapper">
+                        <input type="password" id="new-password" class="password-length-input" placeholder="••••••" maxlength="50">
+                        <button type="button" class="password-toggle" onclick="togglePasswordVisibility('new-password')">
+                            <i data-lucide="eye"></i>
+                        </button>
+                    </div>
+                </div>
+                <button id="remove-password-btn" class="remove-pass-btn">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>
+                    <span data-i18n="remove_password">Şifreyi Kaldır</span>
+                </button>
+                <button id="save-password-change" class="primary-btn full-width" style="margin-top: 20px;" data-i18n="update_password">Şifreyi Güncelle</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirm Modal -->
+    <div id="delete-confirm-modal" class="modal-overlay hidden">
+        <div class="modal-content small">
+            <div class="modal-header">
+                <h2 style="color: #ff4757;" data-i18n="are_you_sure">Emin misiniz?</h2>
+                <button class="close-modal"><i data-lucide="x"></i></button>
+            </div>
+            <div class="modal-body">
+                <p data-i18n="delete_warning">Bu depoyu ve içindeki tüm eşyaları silmek istediğinizden emin misiniz? Bu işlem geri alınamaz!</p>
+            </div>
+            <div class="modal-footer">
+                <button id="confirm-delete" class="danger-btn" data-i18n="yes_delete_entirely">EVET, TAMAMEN SİL</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Logs Modal -->
+    <div id="logs-modal" class="modal-overlay hidden">
+        <div class="modal-content" style="width: 900px; max-width: 90vw;">
+            <div class="modal-header">
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <div style="width: 40px; height: 40px; background: rgba(0, 151, 167, 0.1); border-radius: 10px; display: flex; align-items: center; justify-content: center; color: var(--primary);">
+                        <i data-lucide="scroll"></i>
+                    </div>
+                    <div>
+                        <h2 style="margin: 0;" data-i18n="logs_modal_title">Depo Hareket Logları</h2>
+                        <p style="margin: 0; font-size: 12px; color: var(--text-dim);" data-i18n="logs_modal_desc">Son 150 işlem listeleniyor</p>
+                    </div>
+                </div>
+                <button class="close-modal"><i data-lucide="x"></i></button>
+            </div>
+            <div class="modal-body" style="padding: 0; margin-top: 20px;">
+                <div class="logs-table-container">
+                    <table class="logs-table">
+                        <thead>
+                            <tr>
+                                <th data-i18n="date">TARİH</th>
+                                <th data-i18n="person">KİŞİ</th>
+                                <th data-i18n="action">İŞLEM</th>
+                                <th data-i18n="detail">DETAY</th>
+                            </tr>
+                        </thead>
+                        <tbody id="logs-list">
+                            <!-- Logs injected here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+
+</html>

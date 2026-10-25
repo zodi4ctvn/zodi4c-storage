@@ -1,0 +1,136 @@
+name: Stars to Discord
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: stars-to-discord
+  cancel-in-progress: false
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Restore known stargazers
+        uses: actions/cache/restore@v6
+        with:
+          path: stargazers.txt
+          key: stargazers-${{ github.run_id }}
+          restore-keys: |
+            stargazers-
+
+      - name: Notify Discord about new stars
+        env:
+          GH_TOKEN: ${{ github.token }}
+          WEBHOOK: ${{ secrets.DISCORD_STARS_WEBHOOK }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -uo pipefail
+          api="https://api.github.com"
+
+          # Authenticated request first, anonymous fallback (the workflow token is
+          # not allowed to read every endpoint, but it raises the rate limit).
+          gh_get() {
+            if [ -n "${GH_TOKEN:-}" ]; then
+              curl -sS --fail -H "Authorization: Bearer $GH_TOKEN" \
+                -H "Accept: application/vnd.github+json" "$1" -o "$2" && return 0
+            fi
+            curl -sS --fail -H "Accept: application/vnd.github+json" "$1" -o "$2"
+          }
+
+          if [ -z "${WEBHOOK:-}" ]; then
+            echo "::warning::DISCORD_STARS_WEBHOOK secret is missing - skipping notifications."
+            touch stargazers.txt
+            exit 0
+          fi
+
+          # Public events feed: WatchEvent == someone starred the repo.
+          pages=0
+          : > stars.raw
+          for page in 1 2 3; do
+            if gh_get "$api/repos/$REPO/events?per_page=100&page=$page" "events.$page.json"; then
+              jq -r '.[] | select(.type == "WatchEvent") | .actor.login' "events.$page.json" >> stars.raw || true
+              size=$(jq 'length' "events.$page.json" 2>/dev/null || echo 0)
+              pages=$((pages + 1))
+              if [ "$size" -lt 100 ]; then break; fi
+            else
+              break
+            fi
+          done
+
+          if [ "$pages" -eq 0 ]; then
+            echo "::error::Could not read the events feed. Nothing was changed."
+            exit 1
+          fi
+
+          stargazers=$(sed '/^$/d' stars.raw | sort -u)
+          echo "Event pages read: $pages"
+          echo "Stars found in the feed: $(printf '%s' "$stargazers" | grep -c . || true)"
+
+          have_state=0
+          if [ -f stargazers.txt ]; then have_state=1; fi
+          printf '%s\n' "$stargazers" | sed '/^$/d' | sort -u > current.txt
+
+          total=0
+          if gh_get "$api/repos/$REPO" repo.json; then
+            total=$(jq -r '.stargazers_count // 0' repo.json 2>/dev/null || echo 0)
+          fi
+          echo "Total stars reported by GitHub: $total"
+
+          if [ "$have_state" -eq 0 ]; then
+            echo "First run - seeding $(grep -c . current.txt || true) stargazer(s) without notifications."
+            cp current.txt stargazers.txt
+            exit 0
+          fi
+
+          # new = current - known ; the stored state only ever grows
+          comm -13 <(sort -u stargazers.txt) current.txt > new.tmp || true
+          sort -u stargazers.txt current.txt > merged.txt
+          cp merged.txt stargazers.txt
+
+          if [ ! -s new.tmp ]; then
+            echo "No new stars."
+            exit 0
+          fi
+
+          echo "New stargazers:"
+          cat new.tmp
+
+          while IFS= read -r login; do
+            [ -z "$login" ] && continue
+            payload=$(jq -n \
+              --arg login "$login" \
+              --arg user "https://github.com/$login" \
+              --arg repo "https://github.com/$REPO" \
+              --arg avatar "https://github.com/$login.png?size=128" \
+              --arg total "$total" \
+              '{
+                username: "GitHub Stars",
+                embeds: [{
+                  author: { name: $login, url: $user, icon_url: $avatar },
+                  title: "Yeni yıldız / New star",
+                  url: $repo,
+                  description: ("**[" + $login + "](" + $user + ")** repoyu yıldızladı · starred the repository\n⭐ **" + $total + "** stars"),
+                  color: 2374186
+                }]
+              }')
+            code=$(curl -sS -o /dev/null -w '%{http_code}' -X POST \
+              -H "Content-Type: application/json" -d "$payload" "$WEBHOOK" || echo 000)
+            case "$code" in
+              2*) echo "notified: $login" ;;
+              *)  echo "::warning::Discord responded $code for $login" ;;
+            esac
+            sleep 1
+          done < new.tmp
+
+      - name: Save known stargazers
+        if: always() && hashFiles('stargazers.txt') != ''
+        uses: actions/cache/save@v6
+        with:
+          path: stargazers.txt
+          key: stargazers-${{ github.run_id }}

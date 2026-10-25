@@ -1,0 +1,35 @@
+# Dependencies and build output
+node_modules/
+vendor/
+dist/
+build/
+*.zip
+*.rar
+*.7z
+
+# Logs and crash dumps
+*.log
+logs/
+crash-*.txt
+*.dmp
+
+# Local environment files
+.env
+.env.*
+!.env.example
+
+# Editors and OS files
+.vscode/
+.idea/
+*.suo
+*.user
+*.swp
+*~
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Local test data
+*.sql.bak
+*.dump
+test-data/

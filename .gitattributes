@@ -1,0 +1,29 @@
+# Normalize line endings across platforms
+* text=auto eol=lf
+
+# Source files
+*.lua text eol=lf
+*.js text eol=lf
+*.css text eol=lf
+*.html text eol=lf
+*.md text eol=lf
+*.sql text eol=lf
+*.json text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+
+# Binary assets
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.zip binary
+
+# Keep SVG readable
+*.svg text eol=lf
+
+# Git diff helpers
+*.lua linguist-language=Lua
+*.sql linguist-language=SQL

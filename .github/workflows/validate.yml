@@ -1,0 +1,64 @@
+name: Validate
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check NUI JavaScript syntax
+        run: node --check html/script.js
+
+      - name: Check required files
+        run: |
+          missing=0
+          for file in fxmanifest.lua config.lua client/main.lua server/main.lua \
+            shared/locale.lua locales/tr.lua locales/en.lua html/index.html \
+            html/style.css html/script.js sql/zodi4c-storage.sql; do
+            if [ ! -f "$file" ]; then
+              echo "::error::Missing required file: $file"
+              missing=1
+            fi
+          done
+          exit $missing
+
+      - name: Check bilingual documentation
+        run: |
+          for file in README.md CHANGELOG.md CONTRIBUTING.md SECURITY.md CODE_OF_CONDUCT.md \
+            docs/installation.md docs/configuration.md docs/database.md docs/events.md \
+            docs/troubleshooting.md; do
+            if ! grep -q '^## Türkçe' "$file"; then
+              echo "::error::Missing Turkish section in $file"
+              exit 1
+            fi
+            if ! grep -q '^## English' "$file"; then
+              echo "::error::Missing English section in $file"
+              exit 1
+            fi
+          done
+
+      - name: Check localization keys match
+        run: |
+          python3 - <<'PY'
+          import re, pathlib, sys
+
+          def keys(path):
+              text = pathlib.Path(path).read_text(encoding="utf-8")
+              return set(re.findall(r"^\s*([a-z_]+)\s*=", text, re.M))
+
+          tr = keys("locales/tr.lua")
+          en = keys("locales/en.lua")
+          missing_en = sorted(tr - en)
+          missing_tr = sorted(en - tr)
+          if missing_en:
+              print("::error::Keys missing in en.lua:", ", ".join(missing_en))
+          if missing_tr:
+              print("::error::Keys missing in tr.lua:", ", ".join(missing_tr))
+          sys.exit(1 if (missing_en or missing_tr) else 0)
+          PY

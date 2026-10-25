@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="360" viewBox="0 0 1280 360" fill="none" role="img" aria-labelledby="title desc">
+  <title id="title">zodi4c-storage — shared storage system for QBCore and Qbox</title>
+  <desc id="desc">Monochrome banner: an archive icon, the zodi4c-storage title, a subtitle naming QBCore and Qbox, the supported stack and the repository path.</desc>
+
+  <rect width="1280" height="360" rx="16" fill="#0A0A0B"/>
+  <rect x="0.5" y="0.5" width="1279" height="359" rx="15.5" stroke="#26262B"/>
+
+  <!-- mark -->
+  <g transform="translate(64 130) scale(3.3333)" stroke="#F4F4F5" stroke-width="0.9" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <rect x="2" y="3" width="20" height="5" rx="1"/>
+    <path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"/>
+    <path d="M10 12h4"/>
+  </g>
+
+  <line x1="180" y1="132" x2="180" y2="210" stroke="#242429" stroke-width="1"/>
+
+  <!-- title -->
+  <text x="220" y="176" fill="#FAFAFA" font-family="Inter, 'Segoe UI', system-ui, -apple-system, sans-serif" font-size="54" font-weight="700" letter-spacing="-1">zodi4c-storage</text>
+  <text x="222" y="212" fill="#9A9AA1" font-family="Inter, 'Segoe UI', system-ui, -apple-system, sans-serif" font-size="18" font-weight="400">Shared storage system for QBCore and Qbox servers</text>
+
+  <!-- stack -->
+  <text x="222" y="254" fill="#8A8A91" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="12.5" letter-spacing="2.4">FIVEM / QBCORE / QBOX (QBX) / OX_INVENTORY / OXMYSQL</text>
+
+  <!-- version -->
+  <rect x="1132" y="56" width="84" height="30" rx="6" stroke="#2C2C31"/>
+  <text x="1174" y="76" fill="#C7C7CC" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="12" letter-spacing="0.6" text-anchor="middle">v1.0.0</text>
+
+  <!-- footer -->
+  <line x1="64" y1="292" x2="1216" y2="292" stroke="#1E1E23" stroke-width="1"/>
+  <text x="64" y="318" fill="#6A6A71" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="11" letter-spacing="1.6">github.com/zodi4ctvn/zodi4c-storage</text>
+  <text x="1216" y="318" fill="#6A6A71" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="11" letter-spacing="1.6" text-anchor="end">MIT LICENSED</text>
+</svg>
