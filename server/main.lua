@@ -1,7 +1,89 @@
+do
+    local resName = GetCurrentResourceName()
+    local author = tostring(GetResourceMetadata(resName, 'author', 0) or '')
+    if resName ~= 'zodi4c-storage' or not string.find(string.lower(author), 'zodi4c', 1, true) then
+        print('^1======================================================================^7')
+        print('^1[zodi4c-storage] [TR] HATA: Kaynak adi veya yazar bilgisi degistirilmis!^7')
+        print('^1[zodi4c-storage] [TR] Lutfen kaynak adini "zodi4c-storage" olarak geri adlandirin^7')
+        print('^1[zodi4c-storage] [TR] ve fxmanifest.lua icindeki author bilgisini geri yukleyin.^7')
+        print('^1[zodi4c-storage] [EN] ERROR: Resource name or author metadata was modified!^7')
+        print('^1[zodi4c-storage] [EN] Please rename this resource back to "zodi4c-storage"^7')
+        print('^1[zodi4c-storage] [EN] and restore the original Zodi4c author metadata.^7')
+        print('^1[zodi4c-storage] Official source: https://github.com/zodi4ctvn^7')
+        print('^1======================================================================^7')
+        return
+    end
+end
+
 local QBCore = exports['qb-core']:GetCoreObject()
 
 local STASH_PREFIX = 'zodi4c_storage_'
 local loginAttempts = {}
+local inFlightActions = {}
+
+AddEventHandler('playerDropped', function()
+    inFlightActions[source] = nil
+end)
+
+local function AcquireActionLock(src, actionName)
+    inFlightActions[src] = inFlightActions[src] or {}
+    if inFlightActions[src][actionName] then
+        return false
+    end
+    inFlightActions[src][actionName] = true
+    return true
+end
+
+local function ReleaseActionLock(src, actionName)
+    if inFlightActions[src] then
+        inFlightActions[src][actionName] = nil
+    end
+end
+
+local function IsPlayerNearStorage(src, player)
+    if not player then return false, 'no_permission' end
+
+    local metadata = player.PlayerData and player.PlayerData.metadata or {}
+    if metadata.isdead or metadata.inlaststand then
+        return false, 'dead_cannot_access'
+    end
+
+    local ped = GetPlayerPed(src)
+    if not ped or ped == 0 then
+        return false, 'too_far'
+    end
+
+    local playerCoords = GetEntityCoords(ped)
+    local npcCoords = vector3(Config.NPC.coords.x, Config.NPC.coords.y, Config.NPC.coords.z)
+    local maxDistance = (tonumber(Config.InteractionDistance) or 3.0) + 2.5
+
+    if #(playerCoords - npcCoords) > maxDistance then
+        return false, 'too_far'
+    end
+
+    return true
+end
+
+local function SanitizeImageUrl(rawImage)
+    local value = tostring(rawImage or ''):gsub('^%s+', ''):gsub('%s+$', '')
+    if value == '' or value == Config.DefaultImage then
+        return Config.DefaultImage, true
+    end
+
+    if #value > 4096 then
+        return nil, false
+    end
+
+    if value:find('[%s"\'<>]') then
+        return nil, false
+    end
+
+    if string.lower(value:sub(1, 8)) ~= 'https://' then
+        return nil, false
+    end
+
+    return value, true
+end
 
 local function DebugPrint(...)
     if Config.Debug then
@@ -101,6 +183,8 @@ exports.ox_inventory:registerHook('swapItems', function(payload)
 
     local fromInventory = tostring(payload.fromInventory or '')
     local toInventory = tostring(payload.toInventory or '')
+    if fromInventory == toInventory then return true end
+
     local storageId, action
 
     if fromInventory:find(STASH_PREFIX, 1, true) then
@@ -112,7 +196,7 @@ exports.ox_inventory:registerHook('swapItems', function(payload)
     end
 
     if storageId and payload.fromSlot then
-        local count = payload.fromSlot.count or 0
+        local count = payload.count or payload.fromSlot.count or 0
         local label = payload.fromSlot.label or payload.fromSlot.name or '?'
         local details = ('%sx %s'):format(count, label)
 
@@ -152,6 +236,9 @@ QBCore.Functions.CreateCallback('zodi4c-storage:server:getStorages', function(so
     local player = QBCore.Functions.GetPlayer(source)
     if not player then return cb({}) end
 
+    local nearOk = IsPlayerNearStorage(source, player)
+    if not nearOk then return cb({}) end
+
     local citizenid = player.PlayerData.citizenid
     local query = [[
         SELECT
@@ -190,6 +277,12 @@ RegisterNetEvent('zodi4c-storage:server:createStorage', function(data)
     local player = QBCore.Functions.GetPlayer(src)
     if not player then return end
 
+    local nearOk, nearErr = IsPlayerNearStorage(src, player)
+    if not nearOk then
+        Notify(src, nearErr, 'error')
+        return
+    end
+
     if type(data) ~= 'table' or not data.name or not data.slots or not data.weight then
         Notify(src, 'missing_data', 'error')
         return
@@ -199,15 +292,17 @@ RegisterNetEvent('zodi4c-storage:server:createStorage', function(data)
     local name = NormalizeName(data.name)
     local slots = tonumber(data.slots)
     local weight = tonumber(data.weight)
-    local image = tostring(data.image or '')
+    slots = slots and math.floor(slots) or nil
+    weight = weight and math.floor(weight) or nil
+    local image, imageValid = SanitizeImageUrl(data.image)
     local paymentType = (data.paymentType == 'bank' or data.paymentType == 'cash') and data.paymentType or 'cash'
     local price = tonumber(Config.Pricing[paymentType]) or 0
     local rawPassword = data.password and tostring(data.password) or ''
 
-    if image == '' then
-        image = Config.DefaultImage
+    if not imageValid then
+        Notify(src, 'invalid_image_url', 'error')
+        return
     end
-    image = image:sub(1, 4096)
 
     if not slots or slots < 1 or slots > (Config.Limits.maxSlots or 100) then
         Notify(src, 'invalid_slots', 'error')
@@ -230,16 +325,23 @@ RegisterNetEvent('zodi4c-storage:server:createStorage', function(data)
         return
     end
 
+    if not AcquireActionLock(src, 'createStorage') then
+        Notify(src, 'action_in_progress', 'error')
+        return
+    end
+
     local password = NormalizePassword(rawPassword)
 
     local function CreateStorage()
         MySQL.scalar('SELECT COUNT(*) FROM zodi4c_storages WHERE owner = ?', { citizenid }, function(count)
             if (count or 0) >= (Config.Limits.maxStoragesPerPlayer or 10) then
+                ReleaseActionLock(src, 'createStorage')
                 Notify(src, 'max_storages_reached', 'error', Config.Limits.maxStoragesPerPlayer or 10)
                 return
             end
 
             if player.Functions.GetMoney(paymentType) < price then
+                ReleaseActionLock(src, 'createStorage')
                 Notify(src, 'not_enough_money', 'error')
                 return
             end
@@ -250,6 +352,7 @@ RegisterNetEvent('zodi4c-storage:server:createStorage', function(data)
                 'INSERT INTO zodi4c_storages (owner, name, image, slots, weight, password) VALUES (?, ?, ?, ?, ?, ?)',
                 { citizenid, name, image, slots, weight, password },
                 function(id)
+                    ReleaseActionLock(src, 'createStorage')
                     if not id then
                         player.Functions.AddMoney(paymentType, price, 'storage-creation-refund')
                         Notify(src, 'storage_create_failed', 'error')
@@ -266,6 +369,7 @@ RegisterNetEvent('zodi4c-storage:server:createStorage', function(data)
     if Config.Features.requireUniqueNames then
         MySQL.scalar('SELECT COUNT(*) FROM zodi4c_storages WHERE name = ?', { name }, function(count)
             if count and count > 0 then
+                ReleaseActionLock(src, 'createStorage')
                 Notify(src, 'storage_name_taken', 'error')
                 return
             end
@@ -282,18 +386,30 @@ RegisterNetEvent('zodi4c-storage:server:openStorage', function(storageId, passwo
     local player = QBCore.Functions.GetPlayer(src)
     if not player then return end
 
+    local nearOk, nearErr = IsPlayerNearStorage(src, player)
+    if not nearOk then
+        Notify(src, nearErr, 'error')
+        return
+    end
+
     storageId = tonumber(storageId)
     if not storageId then return end
+
+    if not AcquireActionLock(src, 'openStorage') then
+        return
+    end
 
     local citizenid = player.PlayerData.citizenid
 
     MySQL.single('SELECT * FROM zodi4c_storages WHERE id = ?', { storageId }, function(storage)
         if not storage then
+            ReleaseActionLock(src, 'openStorage')
             Notify(src, 'storage_not_found', 'error')
             return
         end
 
         if storage.owner == citizenid then
+            ReleaseActionLock(src, 'openStorage')
             OpenStash(src, storageId, storage)
             return
         end
@@ -303,6 +419,7 @@ RegisterNetEvent('zodi4c-storage:server:openStorage', function(storageId, passwo
             { storageId, citizenid },
             function(memberCount)
                 if memberCount and memberCount > 0 then
+                    ReleaseActionLock(src, 'openStorage')
                     OpenStash(src, storageId, storage)
                     return
                 end
@@ -310,12 +427,14 @@ RegisterNetEvent('zodi4c-storage:server:openStorage', function(storageId, passwo
                 if storage.password and storage.password ~= '' then
                     local loginState = GetLoginState(citizenid)
                     if loginState and loginState.lockedUntil then
+                        ReleaseActionLock(src, 'openStorage')
                         Notify(src, 'too_many_attempts', 'error', loginState.lockedUntil - os.time())
                         return
                     end
 
                     if not VerifyPassword(storage.password, password) then
                         local failedState = RegisterFailedAttempt(citizenid)
+                        ReleaseActionLock(src, 'openStorage')
                         if failedState.lockedUntil then
                             Notify(src, 'locked_out', 'error', Config.Security.lockoutDuration or 300)
                         else
@@ -327,6 +446,7 @@ RegisterNetEvent('zodi4c-storage:server:openStorage', function(storageId, passwo
                     loginAttempts[citizenid] = nil
                 end
 
+                ReleaseActionLock(src, 'openStorage')
                 OpenStash(src, storageId, storage)
             end
         )
@@ -337,6 +457,9 @@ QBCore.Functions.CreateCallback('zodi4c-storage:server:getMembers', function(sou
     local src = source
     local player = QBCore.Functions.GetPlayer(src)
     if not player then return cb({}) end
+
+    local nearOk = IsPlayerNearStorage(src, player)
+    if not nearOk then return cb({}) end
 
     storageId = tonumber(storageId)
     if not storageId then return cb({}) end
@@ -412,6 +535,12 @@ RegisterNetEvent('zodi4c-storage:server:kickMember', function(storageId, citizen
     local player = QBCore.Functions.GetPlayer(src)
     if not player then return end
 
+    local nearOk, nearErr = IsPlayerNearStorage(src, player)
+    if not nearOk then
+        Notify(src, nearErr, 'error')
+        return
+    end
+
     storageId = tonumber(storageId)
     citizenid = citizenid and tostring(citizenid) or nil
 
@@ -438,6 +567,12 @@ RegisterNetEvent('zodi4c-storage:server:leaveStorage', function(storageId)
     local src = source
     local player = QBCore.Functions.GetPlayer(src)
     if not player then return end
+
+    local nearOk, nearErr = IsPlayerNearStorage(src, player)
+    if not nearOk then
+        Notify(src, nearErr, 'error')
+        return
+    end
 
     if not Config.Features.allowLeaveStorage then
         Notify(src, 'feature_disabled_leave', 'error')
@@ -473,16 +608,24 @@ RegisterNetEvent('zodi4c-storage:server:deleteStorage', function(storageId)
     local player = QBCore.Functions.GetPlayer(src)
     if not player then return end
 
+    local nearOk, nearErr = IsPlayerNearStorage(src, player)
+    if not nearOk then
+        Notify(src, nearErr, 'error')
+        return
+    end
+
     storageId = tonumber(storageId)
     if not storageId then return end
 
-    MySQL.single('SELECT owner FROM zodi4c_storages WHERE id = ?', { storageId }, function(storage)
+    MySQL.single('SELECT owner, name, slots, weight FROM zodi4c_storages WHERE id = ?', { storageId }, function(storage)
         if not storage or storage.owner ~= player.PlayerData.citizenid then
             Notify(src, 'no_permission', 'error')
             return
         end
 
         local stashName = STASH_PREFIX .. storageId
+        -- Ensure stash is registered/loaded by ox_inventory before checking item count after restart.
+        exports.ox_inventory:RegisterStash(stashName, storage.name, storage.slots, storage.weight, false)
         local inventory = exports.ox_inventory:GetInventory(stashName)
 
         if inventory and inventory.items then
@@ -494,11 +637,33 @@ RegisterNetEvent('zodi4c-storage:server:deleteStorage', function(storageId)
             end
         end
 
-        MySQL.query('DELETE FROM ox_inventory WHERE name = ?', { stashName })
-        MySQL.query('DELETE FROM zodi4c_storages WHERE id = ?', { storageId }, function()
-            Notify(src, 'storage_deleted', 'success')
-            TriggerClientEvent('zodi4c-storage:client:refreshStorages', src)
-        end)
+        local function PerformDelete()
+            MySQL.query('DELETE FROM ox_inventory WHERE name = ?', { stashName })
+            MySQL.query('DELETE FROM zodi4c_storages WHERE id = ?', { storageId }, function()
+                Notify(src, 'storage_deleted', 'success')
+                TriggerClientEvent('zodi4c-storage:client:refreshStorages', src)
+            end)
+        end
+
+        if not inventory then
+            MySQL.scalar('SELECT data FROM ox_inventory WHERE name = ?', { stashName }, function(rawData)
+                if rawData and rawData ~= '' and rawData ~= '[]' and rawData ~= '{}' then
+                    local ok, decoded = pcall(json.decode, rawData)
+                    if ok and type(decoded) == 'table' then
+                        for _, item in pairs(decoded) do
+                            if type(item) == 'table' and (tonumber(item.count) or 0) > 0 then
+                                Notify(src, 'storage_has_items', 'error')
+                                return
+                            end
+                        end
+                    end
+                end
+                PerformDelete()
+            end)
+            return
+        end
+
+        PerformDelete()
     end)
 end)
 
@@ -506,6 +671,12 @@ RegisterNetEvent('zodi4c-storage:server:updateStorage', function(data)
     local src = source
     local player = QBCore.Functions.GetPlayer(src)
     if not player then return end
+
+    local nearOk, nearErr = IsPlayerNearStorage(src, player)
+    if not nearOk then
+        Notify(src, nearErr, 'error')
+        return
+    end
 
     if type(data) ~= 'table' or not data.id or not data.name then
         Notify(src, 'missing_data', 'error')
@@ -516,12 +687,11 @@ RegisterNetEvent('zodi4c-storage:server:updateStorage', function(data)
     if not id then return end
 
     local name = NormalizeName(data.name)
-    local image = tostring(data.image or '')
-
-    if image == '' then
-        image = Config.DefaultImage
+    local image, imageValid = SanitizeImageUrl(data.image)
+    if not imageValid then
+        Notify(src, 'invalid_image_url', 'error')
+        return
     end
-    image = image:sub(1, 4096)
 
     if #name < (Config.Limits.minNameLength or 3) then
         Notify(src, 'name_too_short', 'error', Config.Limits.minNameLength or 3)
@@ -573,7 +743,13 @@ RegisterNetEvent('zodi4c-storage:server:changePassword', function(data)
     local player = QBCore.Functions.GetPlayer(src)
     if not player then return end
 
-    if type(data) ~= 'table' or not data.id or not data.newPass then
+    local nearOk, nearErr = IsPlayerNearStorage(src, player)
+    if not nearOk then
+        Notify(src, nearErr, 'error')
+        return
+    end
+
+    if type(data) ~= 'table' or not data.id or data.newPass == nil then
         Notify(src, 'missing_data', 'error')
         return
     end
@@ -583,6 +759,15 @@ RegisterNetEvent('zodi4c-storage:server:changePassword', function(data)
 
     local newPassword = tostring(data.newPass)
     local oldPassword = data.oldPass and tostring(data.oldPass) or ''
+
+    if newPassword == '' then
+        if not Config.Features.allowPasswordRemoval then
+            Notify(src, 'feature_disabled_password_removal', 'error')
+        else
+            Notify(src, 'new_password_empty', 'error')
+        end
+        return
+    end
 
     local passwordValid, passwordKey, passwordLimit = ValidatePassword(newPassword)
     if not passwordValid then
@@ -620,6 +805,12 @@ RegisterNetEvent('zodi4c-storage:server:removePassword', function(storageId)
     local player = QBCore.Functions.GetPlayer(src)
     if not player then return end
 
+    local nearOk, nearErr = IsPlayerNearStorage(src, player)
+    if not nearOk then
+        Notify(src, nearErr, 'error')
+        return
+    end
+
     if not Config.Features.allowPasswordRemoval then
         Notify(src, 'feature_disabled_password_removal', 'error')
         return
@@ -655,6 +846,12 @@ RegisterNetEvent('zodi4c-storage:server:updateStorageCapacity', function(data)
     local player = QBCore.Functions.GetPlayer(src)
     if not player then return end
 
+    local nearOk, nearErr = IsPlayerNearStorage(src, player)
+    if not nearOk then
+        Notify(src, nearErr, 'error')
+        return
+    end
+
     if not Config.Features.allowCapacityUpdate then
         Notify(src, 'feature_disabled_capacity', 'error')
         return
@@ -668,6 +865,8 @@ RegisterNetEvent('zodi4c-storage:server:updateStorageCapacity', function(data)
     local id = tonumber(data.id)
     local slots = tonumber(data.slots)
     local weight = tonumber(data.weight)
+    slots = slots and math.floor(slots) or nil
+    weight = weight and math.floor(weight) or nil
 
     if not id then return end
 
@@ -705,6 +904,9 @@ end)
 QBCore.Functions.CreateCallback('zodi4c-storage:server:getLogs', function(source, cb, storageId)
     local player = QBCore.Functions.GetPlayer(source)
     if not player then return cb({}) end
+
+    local nearOk = IsPlayerNearStorage(source, player)
+    if not nearOk then return cb({}) end
 
     storageId = tonumber(storageId)
     if not storageId then return cb({}) end

@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS `zodi4c_storages` (
 
     INDEX `idx_owner`      (`owner`),
     INDEX `idx_created_at` (`created_at`)
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ============================================================
 -- Stores the players that have joined a storage.
@@ -34,7 +34,7 @@ CREATE TABLE IF NOT EXISTS `zodi4c_storage_members` (
 
     FOREIGN KEY (`storage_id`) REFERENCES `zodi4c_storages`(`id`)
         ON DELETE CASCADE
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ============================================================
 -- Optional helper views

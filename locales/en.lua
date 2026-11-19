@@ -88,6 +88,7 @@ Locales.en = {
     log_take = 'TAKEN',
     log_put = 'STORED',
     log_access = 'ACCESS',
+    storage_open = 'Opened storage',
 
     -- Notifications
     missing_data = 'Missing information!',
@@ -125,6 +126,9 @@ Locales.en = {
     too_many_attempts = 'Too many failed attempts. Try again in %s seconds.',
     locked_out = 'Too many failed attempts. You are locked out for %s seconds.',
     dead_cannot_access = 'You cannot access storages while dead!',
+    too_far = 'You are too far from the storage clerk!',
+    invalid_image_url = 'Invalid image URL! Only https:// links are allowed.',
+    action_in_progress = 'Your previous action is still in progress, please wait.',
     storage_load_error = 'Storage list could not be loaded!',
     unknown_owner = 'Unknown Owner',
     unknown_member = 'Unknown Member',

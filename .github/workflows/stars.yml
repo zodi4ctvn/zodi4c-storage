@@ -2,7 +2,7 @@ name: Stars to Discord
 
 on:
   schedule:
-    - cron: "*/10 * * * *"
+    - cron: "0 */6 * * *"
   workflow_dispatch:
 
 permissions:
@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Restore known stargazers
-        uses: actions/cache/restore@v6
+        uses: actions/cache/restore@v4
         with:
           path: stargazers.txt
           key: stargazers-${{ github.run_id }}
@@ -130,7 +130,7 @@ jobs:
 
       - name: Save known stargazers
         if: always() && hashFiles('stargazers.txt') != ''
-        uses: actions/cache/save@v6
+        uses: actions/cache/save@v4
         with:
           path: stargazers.txt
           key: stargazers-${{ github.run_id }}

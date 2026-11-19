@@ -120,7 +120,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 updatePricingUI();
                 renderStorages();
-                document.documentElement.style.setProperty('--blur-level', `${data.blurLevel || 10}px`);
+                document.documentElement.style.setProperty('--blur-level', `${data.blurLevel ?? 0}px`);
                 const mainMenu = document.getElementById('main-menu');
                 if (mainMenu) mainMenu.classList.remove('hidden');
                 break;
@@ -188,9 +188,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const url = e.target.value;
             const preview = document.getElementById('image-preview');
             if (preview) {
-                if (url && (url.startsWith('http') || url.startsWith('https') || url.startsWith('data:'))) {
+                if (url && url.startsWith('https://')) {
                     // object-fit keeps the full image visible inside the preview box.
-                    preview.innerHTML = `<img src="${escapeHtml(url)}" onerror="this.src='${defaultImage}'" alt="preview" style="width:100%; height:100%; object-fit:contain; border-radius:8px; padding:8px;">`;
+                    preview.innerHTML = `<img src="${escapeHtml(url)}" onerror="this.onerror=null;this.src='${escapeHtml(defaultImage)}'" alt="preview" style="width:100%; height:100%; object-fit:contain; border-radius:8px; padding:8px;">`;
                 } else {
                     preview.innerHTML = `<i data-lucide="image"></i>`;
                     if (window.lucide) lucide.createIcons();
@@ -570,7 +570,7 @@ function renderStorages() {
 
         card.innerHTML = `
             <div class="card-img">
-                <img src="${escapeHtml(s.image || defaultImage)}" loading="lazy" decoding="async" onerror="this.src='${defaultImage}'" alt="">
+                <img src="${escapeHtml(s.image || defaultImage)}" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='${escapeHtml(defaultImage)}'" alt="">
             </div>
             <div class="card-content">
                 <div class="card-info">
@@ -638,23 +638,29 @@ function openStorage(id, hasPassword) {
 function updatePricingUI() {
     const bankPrice = document.getElementById('price-bank');
     const cashPrice = document.getElementById('price-cash');
-    if (bankPrice) bankPrice.innerText = `${pricing.bank || 5000}$`;
-    if (cashPrice) cashPrice.innerText = `${pricing.cash || 5000}$`;
+    if (bankPrice) bankPrice.innerText = `${pricing.bank ?? 0}$`;
+    if (cashPrice) cashPrice.innerText = `${pricing.cash ?? 0}$`;
 }
 
 function closeAll() {
-    const mainMenu = document.getElementById('main-menu');
-    const createModal = document.getElementById('create-modal');
-    const passwordModal = document.getElementById('password-modal');
-    const manageModal = document.getElementById('manage-modal');
-    const deleteConfirmModal = document.getElementById('delete-confirm-modal');
-    const container = document.querySelector('.menu-container');
+    const modalIds = [
+        'main-menu',
+        'create-modal',
+        'password-modal',
+        'manage-modal',
+        'delete-confirm-modal',
+        'members-modal',
+        'edit-storage-modal',
+        'capacity-modal',
+        'change-password-modal',
+        'logs-modal'
+    ];
+    modalIds.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.add('hidden');
+    });
 
-    if (mainMenu) mainMenu.classList.add('hidden');
-    if (createModal) createModal.classList.add('hidden');
-    if (passwordModal) passwordModal.classList.add('hidden');
-    if (manageModal) manageModal.classList.add('hidden');
-    if (deleteConfirmModal) deleteConfirmModal.classList.add('hidden');
+    const container = document.querySelector('.menu-container');
     if (container) container.classList.remove('modal-blur');
 
     postNUI('closeMenu', {});
@@ -718,14 +724,11 @@ function renderMembers(members, ownerCid) {
 
         const initials = escapeHtml(getInitials(m.name));
         const safeCid = escapeHtml(JSON.stringify(String(m.citizenid ?? '')));
-        const avatarHtml = m.discordId ?
-            `<img src="https://api.vops.lt/discord/avatar/${encodeURIComponent(m.discordId)}" class="member-avatar" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">` : '';
 
         item.innerHTML = `
             <div class="member-info">
                 <div class="member-avatar-wrapper">
-                    ${avatarHtml}
-                    <div class="member-initials" style="${m.discordId ? 'display:none;' : 'display:flex;'}">
+                    <div class="member-initials" style="display:flex;">
                         ${initials}
                     </div>
                 </div>
@@ -877,12 +880,13 @@ function openLogs() {
         } else {
             logs.forEach(log => {
                 const action = getLogAction(log.action);
+                const detailText = log.details === 'storage_open' ? t('storage_open') : (log.details || '-');
                 const row = document.createElement('tr');
                 row.innerHTML = `
                     <td style="color: var(--text-dim); font-family: monospace;">${escapeHtml(log.date || log.created_at)}</td>
                     <td style="font-weight: 600;">${escapeHtml(log.name)}</td>
                     <td><span class="log-action-badge log-action-${action}">${escapeHtml(t('log_' + action))}</span></td>
-                    <td style="color: #eee;">${escapeHtml(log.details || '-')}</td>
+                    <td style="color: #eee;">${escapeHtml(detailText)}</td>
                 `;
                 list.appendChild(row);
             });

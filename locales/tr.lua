@@ -88,6 +88,7 @@ Locales.tr = {
     log_take = 'ALDI',
     log_put = 'KOYDU',
     log_access = 'GİRİŞ',
+    storage_open = 'Depoyu açtı',
 
     -- Notifications
     missing_data = 'Eksik bilgi!',
@@ -125,6 +126,9 @@ Locales.tr = {
     too_many_attempts = 'Çok fazla hatalı deneme. %s saniye sonra tekrar deneyin.',
     locked_out = 'Çok fazla hatalı deneme. %s saniye boyunca kilitlendiniz.',
     dead_cannot_access = 'Ölüyken depoya erişemezsin!',
+    too_far = 'Depo görevlisine çok uzaksın!',
+    invalid_image_url = 'Geçersiz görsel URL! Yalnızca https:// bağlantıları kabul edilir.',
+    action_in_progress = 'Önceki işleminiz hâlâ devam ediyor, lütfen bekleyin.',
     storage_load_error = 'Depo listesi yüklenemedi!',
     unknown_owner = 'Bilinmeyen Sahip',
     unknown_member = 'Bilinmeyen Üye',

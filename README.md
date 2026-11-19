@@ -7,7 +7,7 @@
 **QBCore ve Qbox (QBX) için paylaşımlı depo sistemi · Shared storage system for QBCore and Qbox (QBX)**
 
 [![Version](https://img.shields.io/badge/version-1.0.0-00bcd4?style=flat-square)](CHANGELOG.md)
-[![License](https://img.shields.io/badge/license-MIT-2ed573?style=flat-square)](LICENSE)
+[![License](https://img.shields.io/badge/license-Custom%20Non--Commercial%20Attribution-orange?style=flat-square)](LICENSE)
 [![Framework](https://img.shields.io/badge/framework-QBCore-0097a7?style=flat-square)](https://github.com/qbcore-framework)
 [![Framework](https://img.shields.io/badge/framework-Qbox-00bcd4?style=flat-square)](https://github.com/Qbox-project)
 [![Inventory](https://img.shields.io/badge/inventory-ox__inventory-00bcd4?style=flat-square)](https://github.com/overextended/ox_inventory)
@@ -159,7 +159,7 @@ Katkılar memnuniyetle karşılanır. Lütfen [CONTRIBUTING.md](CONTRIBUTING.md)
 [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) dosyalarını okuyun. Güvenlik açıkları için
 [SECURITY.md](SECURITY.md) sürecini izleyin.
 
-Bu proje [MIT lisansı](LICENSE) ile lisanslanmıştır. © 2026 zodi4ctvn.
+Bu proje [Custom Non-Commercial Attribution License](LICENSE) ile lisanslanmıştır. Copyright © 2026 [Zodi4c](https://github.com/zodi4ctvn). Ticari olmayan kullanım için ücretsizdir; yazar atfının ve kaynak adının korunması zorunludur.
 
 ---
 
@@ -301,4 +301,4 @@ Contributions are welcome. Please read [CONTRIBUTING.md](CONTRIBUTING.md) and
 [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md). For security issues, follow
 [SECURITY.md](SECURITY.md).
 
-Licensed under the [MIT License](LICENSE). © 2026 zodi4ctvn.
+Licensed under the [Custom Non-Commercial Attribution License](LICENSE). Copyright © 2026 [Zodi4c](https://github.com/zodi4ctvn). Free for non-commercial use with mandatory author attribution and original resource name preserved.

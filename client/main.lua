@@ -1,3 +1,20 @@
+do
+    local resName = GetCurrentResourceName()
+    local author = tostring(GetResourceMetadata(resName, 'author', 0) or '')
+    if resName ~= 'zodi4c-storage' or not string.find(string.lower(author), 'zodi4c', 1, true) then
+        print('^1======================================================================^7')
+        print('^1[zodi4c-storage] [TR] HATA: Kaynak adi veya yazar bilgisi degistirilmis!^7')
+        print('^1[zodi4c-storage] [TR] Lutfen kaynak adini "zodi4c-storage" olarak geri adlandirin^7')
+        print('^1[zodi4c-storage] [TR] ve fxmanifest.lua icindeki author bilgisini geri yukleyin.^7')
+        print('^1[zodi4c-storage] [EN] ERROR: Resource name or author metadata was modified!^7')
+        print('^1[zodi4c-storage] [EN] Please rename this resource back to "zodi4c-storage"^7')
+        print('^1[zodi4c-storage] [EN] and restore the original Zodi4c author metadata.^7')
+        print('^1[zodi4c-storage] Official source: https://github.com/zodi4ctvn^7')
+        print('^1======================================================================^7')
+        return
+    end
+end
+
 local QBCore = exports['qb-core']:GetCoreObject()
 
 local npcEntity = nil
@@ -6,6 +23,8 @@ local menuOpen = false
 
 CreateThread(function()
     local model = Config.NPC.model
+    if not IsModelInCdimage(model) then return end
+
     RequestModel(model)
     while not HasModelLoaded(model) do
         Wait(0)
@@ -16,6 +35,7 @@ CreateThread(function()
     FreezeEntityPosition(npcEntity, true)
     SetEntityInvincible(npcEntity, true)
     SetBlockingOfNonTemporaryEvents(npcEntity, true)
+    SetModelAsNoLongerNeeded(model)
 end)
 
 CreateThread(function()
@@ -307,4 +327,18 @@ RegisterNUICallback('getLogs', function(data, cb)
     QBCore.Functions.TriggerCallback('zodi4c-storage:server:getLogs', function(logs)
         cb(logs or {})
     end, data.storageId)
+end)
+
+AddEventHandler('onResourceStop', function(resourceName)
+    if resourceName ~= GetCurrentResourceName() then return end
+
+    if npcEntity and DoesEntityExist(npcEntity) then
+        DeleteEntity(npcEntity)
+        npcEntity = nil
+    end
+
+    SetNuiFocus(false, false)
+    TriggerScreenblurFadeOut(0)
+    menuOpen = false
+    uiActive = false
 end)

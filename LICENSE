@@ -1,17 +1,30 @@
-MIT License
+Custom Non-Commercial Attribution License
 
-Copyright (c) 2026 zodi4ctvn
+Copyright (c) 2026 Zodi4c (https://github.com/zodi4ctvn)
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+All rights reserved.
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+1. Grant of License
+Permission is hereby granted, free of charge, to any person obtaining a copy of
+this software and associated documentation files (the "Software"), to use, copy,
+modify, and redistribute the Software strictly for personal, educational, and
+non-commercial purposes, subject to the conditions below.
 
+2. Mandatory Attribution
+All copies, forks, derivative works, and redistributions of the Software (in
+source or binary form) MUST retain:
+- This license notice and copyright notice intact;
+- Prominent credit to the original author: Zodi4c (https://github.com/zodi4ctvn);
+- Original brand/author identification and attribution notices without removal,
+  obscuration, or misrepresentation of authorship.
+
+3. Non-Commercial Restriction
+You may NOT sell, resell, license, rent, lease, monetize, or include this
+Software (or any modified version of it) in any paid product, paid bundle,
+subscription, or commercial service without prior written permission from the
+copyright holder (Zodi4c).
+
+4. Disclaimer of Warranty
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
